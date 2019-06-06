@@ -1,10 +1,10 @@
 ## Gnuplot for Kotlin
 
-This is a class for those who know how to use `gnuplot` and want programmatic access to its plotting capabilities from Kotlin.
+This is for anyone who knows how to use `gnuplot` and wants programmatic access to its plotting capabilities from Kotlin.
  
-The class executes a `gnuplot` binary and sets up pipes to its inputs and outputs. This allows plotting commands and data to be piped to it from any Kotlin (or Java) program.
+The `Gnuplot` class executes a `gnuplot` binary in a thread and sets up pipes to its inputs and outputs. This allows plotting commands and data to be piped to it from any Kotlin (or Java) program.
 
-The class requires `gnuplot` to be installed on your system and accessible in your path. It also makes use of the [Apache commons Exec](https://commons.apache.org/proper/commons-exec/) package, so make sure that's installed too.
+Everything's in one class, so to install just copy the `Gnuplot.kt` file into your project. The class requires `gnuplot` to be installed on your system and accessible in your path. It also makes use of the [Apache commons Exec](https://commons.apache.org/proper/commons-exec/) package, so make sure that's installed too.
 
 To use, simply create an instance of the `Gnuplot` class and start piping gnuplot commands to it.
 
@@ -27,7 +27,7 @@ gives
   gnuplot.close()
 ``` 
  
-The `plot` method is a convenient way to access gnuplot's `plot` command. The data for the plot can be piped to gnuplot by supplying a `Sequence<Float>`.  For example...
+The `plot` method is a convenient way to access gnuplot's `plot` command. The data for the plot is supplied as a `Sequence<Float>` (gnuplot uses floats internally, so no point sending doubles).  For example...
 
 ```kotlin
    val data = Array(200) { x -> sin(x*0.1f) }
@@ -40,9 +40,9 @@ plots
 
 ![plot of sin](examples/img/plot.png)
 
-Notice the `inferXCoord=true` parameter, which tells gnuplot that we're just sending a list of Y values, and the X values should be inferred from Y's index in the sequence. When this parameter is `false` (the default) you'll need to send (X,Y) pairs.
+Notice the `inferXCoord=true` parameter, which tells gnuplot that we're just sending a list of Y values, and the X values should be inferred from Y's position in the sequence. When this parameter is `false` (the default) you'll need to send (X,Y) pairs.
 
-Similarly, the `splot` method gives access to surface plots. Data is still sent as a `Sequence<Float>`, data points should be ordered as (x0,y0), (x0,y1)...(x0,yn), (x1,y0)... You can manipulate your data into an appropriate `Sequence<Float>` using `map` and `flatmap`. Because sequences are lazily evaluated, large datasets can be manipulated this way without any memory overhead. For example
+Similarly, the `splot` method gives access to surface plots. Data is still sent as a (flattened) `Sequence<Float>`, data points should be ordered as (x0,y0), (x0,y1)...(x0,yn), (x1,y0)... You can manipulate your data into an appropriate `Sequence<Float>` using `map` and `flatmap`. Because sequences are lazily evaluated, large datasets can be manipulated this way without any memory overhead. For example
 
 ```kotlin
   val XSIZE = 50
