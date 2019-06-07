@@ -31,6 +31,35 @@ open class Gnuplot {
         data.forEach { write(it) }
     }
 
+    // define a here-document
+    // N.B. this will only work with Gnuplot 5.0 upwards
+    fun define(name : String, data : Sequence<Float>, nFields : Int, nRecords : Int = -1, nBlocks : Int = -1, nFrames : Int = -1) {
+        val dataIt = data.iterator()
+        write("\$$name << EOD\n")
+        var frame = nFrames
+        do {
+            var block = nBlocks
+            do {
+                var record = nRecords
+                do {
+                    for(f in 1 until nFields) {
+                        if(!dataIt.hasNext()) throw(IllegalArgumentException("not enough data points"))
+                        write(dataIt.next().toString())
+                        write(" ")
+                    }
+                    write(dataIt.next().toString())
+                    write("\n")
+                } while(if(nRecords ==-1) dataIt.hasNext() else --record !=0)
+                write("\n")
+            } while(if(nBlocks == -1) dataIt.hasNext() else --block != 0)
+            write("\n")
+        } while(if(nFrames == -1) dataIt.hasNext() else --frame != 0)
+        write("EOD\n")
+        if(dataIt.hasNext()) throw(IllegalArgumentException("too many data points"))
+    }
+
+    fun undefine(name : String) = write("undefine \$$name\n")
+
     class XYIterator(xSize: Int, ySize: Int) : Iterator<XYIterator> {
         val x : Float
             get() = xi.toFloat()

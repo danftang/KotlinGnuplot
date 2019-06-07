@@ -80,6 +80,26 @@ For example, the above surface plot could have been generated using
 
 Notice also that this time we chose to explicitly pipe the x and y coordinates, so we removed the `inferXYCoords=true` from the parameters of `splot`.
 
+If you have gnuplot version 5.0 or above, you can also define "here-documents" using the `define` method. This allows you to transfer a dataset to gnuplot and give it a name which you can refer to later in plot commands by replacing the filename with the here-document name, prefixed with a "$". The `undefine` method tells gnuplot to release the data.
+
+The data is structured into fields, records, blocks and frames. Each field is just a floating point number, each record consists of a fixed number of fields and contains data about a single point. Records are structured into one or more blocks. Multiple blocks allows data to be given 2D structure where the block number gives the x-coordinate and the record number gives the y-coordinate. A frame is a set of blocks and multple frames can be used to produce animated plots by replotting frames in order.
+
+Here's a simple example of here-documents in use:
+```kotlin
+  val XSIZE = 50
+  val YSIZE = 100
+  val plotData = gnuplot.generateXYSequence(XSIZE, YSIZE).flatMap { coord ->
+      sequenceOf(coord.x, coord.y, sin(coord.x*0.1f)*sin(coord.y*0.1f))
+  }
+  
+  val gnuplot = Gnuplot()
+  gnuplot.define("data", plotData, 3, YSIZE)
+  gnuplot("splot \$data with pm3d")
+  gnuplot.undefine("data")
+  gnuplot.close()
+```
+![](examples/img/pm3d.png)
+
 The rest is just [learning how to use gnuplot](http://gnuplot.info/)! For example, here's a contour plot
 
 ```kotlin

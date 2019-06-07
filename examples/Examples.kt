@@ -5,9 +5,10 @@ import java.io.FileOutputStream
 import kotlin.math.sin
 
 fun main() {
-    Examples.linePlot()
+    Examples.pointPlot()
     Examples.surfacePlot()
     Examples.contourPlot()
+    Examples.heredocumentPlot()
 }
 
 object Examples {
@@ -20,10 +21,10 @@ object Examples {
         }
     }
 
-    fun linePlot() {
+    fun pointPlot() {
         val gnuplot = Gnuplot()
         gnuplot("set title 'Simple Line Plot'")
-        gnuplot.plot(data1D.asSequence(), inferXCoord = true)
+        gnuplot.plot(data1D.asSequence(), XSIZE, inferXCoord = true, plotStyle = "with points")
         gnuplot.close()
     }
 
@@ -57,4 +58,16 @@ object Examples {
         gnuplot.splot(plotData, XSIZE, YSIZE, inferXYCoords = true)
     }
 
+    fun heredocumentPlot() {
+        val gnuplot = Gnuplot()
+
+        val plotData = gnuplot.generateXYSequence(XSIZE, YSIZE).flatMap { coord ->
+            sequenceOf(coord.x, coord.y, sin(coord.x*0.1f)*sin(coord.y*0.1f))
+        }
+
+        gnuplot.define("data", plotData, 3, YSIZE)
+        gnuplot("splot \$data with pm3d")
+        gnuplot.undefine("data")
+        gnuplot.close()
+    }
 }
