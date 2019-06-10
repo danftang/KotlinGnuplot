@@ -1,14 +1,18 @@
 import org.apache.commons.exec.*
 import java.io.*
+import java.nio.ByteBuffer
+import java.nio.ByteOrder
 
 open class Gnuplot {
     val execResult = DefaultExecuteResultHandler()
-    var pipe : DataOutputStream // pipe feeding the executable's standard in
+    val pipe : PipedOutputStream // pipe feeding the executable's standard in
+    private val nativeBuffer : ByteBuffer = ByteBuffer.allocate(4)
 
     constructor(persist : Boolean = true, pipeOutputTo : OutputStream = System.out, pipeErrTo : OutputStream = System.err) {
+        nativeBuffer.order(ByteOrder.nativeOrder())
         val execIn = PipedInputStream()
         val exec = DefaultExecutor()
-        pipe = DataOutputStream(PipedOutputStream(execIn)) // pipe feeding the executable's standard in
+        pipe = PipedOutputStream(execIn) // pipe feeding the executable's standard in
         val handler = PumpStreamHandler(pipeOutputTo, pipeErrTo, execIn)
         exec.streamHandler = handler
         val cl = CommandLine("gnuplot")
@@ -17,18 +21,17 @@ open class Gnuplot {
     }
 
     // default plotters
-
-    fun plot(data : Sequence<Float>, nRecords : Int=-1, plotStyle : String = "with lines title 'Kotlin data'", inferXCoord : Boolean = false) {
+    fun plot(data : Sequence<Float>, nRecords : Int=-1, ranges : String = "", plotStyle : String = "with lines title 'Kotlin data'", inferXCoord : Boolean = false) {
         val dataType = if(inferXCoord) "array" else "record"
-        write("plot '-' binary endian=big $dataType=($nRecords) $plotStyle\n")
-        data.forEach { write(it) }
+        write("plot $ranges '-' binary $dataType=($nRecords) $plotStyle\n")
+        write(data)
     }
 
     // data in order (x0,y0), (x0,y1)...(x0,yn), (x1,y0)...
-    fun splot(data : Sequence<Float>, xSize : Int = -1, ySize : Int, plotStyle : String = "with lines title 'Kotlin data'", inferXYCoords : Boolean = false) {
+    fun splot(data : Sequence<Float>, xSize : Int = -1, ySize : Int, ranges : String = "", plotStyle : String = "with lines title 'Kotlin data'", inferXYCoords : Boolean = false) {
         val dataType = if(inferXYCoords) "array=($xSize,$ySize) transpose" else "record=($ySize,$xSize)"
-        write("splot '-' binary endian=big $dataType $plotStyle\n")
-        data.forEach { write(it) }
+        write("splot $ranges '-' binary $dataType $plotStyle\n")
+        write(data)
     }
 
     // define a here-document
@@ -97,23 +100,18 @@ open class Gnuplot {
     }
 
     fun write(data : Sequence<Float>) {
-        data.forEach { pipe.writeFloat(it) }
-    }
-
-    fun write(data : Iterable<Float>) {
-        data.forEach { pipe.writeFloat(it) }
-    }
-
-    fun write(vararg data : Float) {
-        for(f in data) {
-            pipe.writeFloat(f)
+        data.forEach {
+            nativeBuffer.putFloat(0, it)
+            pipe.write(nativeBuffer.array())
         }
     }
 
-
     fun write(s: String) = pipe.write(s.toByteArray())
 
-    fun write(f: Float) = pipe.writeFloat(f)
+    fun write(f: Float) {
+        nativeBuffer.putFloat(0, f)
+        pipe.write(nativeBuffer.array())
+    }
 
     fun close() = pipe.close()
 
