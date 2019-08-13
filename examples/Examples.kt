@@ -14,60 +14,62 @@ fun main() {
 object Examples {
     const val XSIZE = 50
     const val YSIZE = 100
-    val data1D = Array(XSIZE) { x -> sin(x*0.1f) }
+    val data1D = Array(XSIZE) { x -> sin(x*0.1f) }.asList()
     val data2D = Array(XSIZE) { x ->
         Array(YSIZE) { y ->
             sin(x*0.1f)*sin(y*0.1f)
         }
-    }
+    }.asList()
+
 
     fun pointPlot() {
-        val gnuplot = Gnuplot()
-        gnuplot("set title 'Simple Line Plot'")
-        gnuplot.plot(data1D.asSequence(), XSIZE, inferXCoord = true, plotStyle = "with points")
-        gnuplot.close()
+        Gnuplot()
+            .invoke("set title 'Simple Line Plot'")
+            .plot(data1D, "with points")
+            .close()
     }
 
     fun linePlotToPng() {
         val file = FileOutputStream("examples/img/plot.png")
-        val gnuplot = Gnuplot(pipeOutputTo = file)
-        gnuplot("set term png")
-        gnuplot.plot(data1D.asSequence(), inferXCoord = true)
-        gnuplot.close()
-
+        Gnuplot(pipeOutputTo = file)
+            .invoke("set term png")
+            .plot(data1D)
+            .close()
     }
 
     fun surfacePlot() {
-        val gnuplot = Gnuplot()
-        gnuplot("set title 'Simple Surface Plot'")
-        val plotData = data2D.asSequence().flatMap { it.asSequence() }
-        gnuplot.splot(plotData, XSIZE, YSIZE, inferXYCoords = true)
-        gnuplot.close()
+        val plotData = Gnuplot.generateXYSequence(XSIZE, YSIZE).map {
+            Triple(it.x,it.y,data2D[it.x][it.y])
+        }
+        Gnuplot()
+            .invoke("set title 'Simple surface plot'")
+            .splot(plotData, YSIZE)
+            .close()
     }
 
     fun contourPlot() {
-        val gnuplot = Gnuplot()
-        gnuplot("set contour")
-        gnuplot("unset surface")
-        gnuplot("set view map")
-        gnuplot("set cntrparam levels incremental -10,2,10")
-        gnuplot("set key off")
-        gnuplot("set xlabel 'xaxis'")
-        gnuplot("set ylabel 'yaxis'")
         val plotData = data2D.asSequence().flatMap { it.asSequence() }.map { it*10.0f }
-        gnuplot.splot(plotData, XSIZE, YSIZE, inferXYCoords = true)
+        Gnuplot()
+            .invoke("set contour;" +
+                    "unset surface;" +
+                    "set view map;" +
+                    "set cntrparam levels incremental -10,2,10;" +
+                    "set key off;" +
+                    "set xlabel 'xaxis';" +
+                    "set ylabel 'yaxis'"
+            )
+            .splot(plotData, XSIZE, YSIZE, inferXYCoords = true)
+            .close()
     }
 
     fun heredocumentPlot() {
-        val gnuplot = Gnuplot()
-
-        val plotData = gnuplot.generateXYSequence(XSIZE, YSIZE).flatMap { coord ->
-            sequenceOf(coord.x, coord.y, sin(coord.x*0.1f)*sin(coord.y*0.1f))
+        val plotData = Gnuplot.generateXYSequence(XSIZE, YSIZE).flatMap { coord ->
+            sequenceOf(coord.x.toFloat(), coord.y.toFloat(), sin(coord.x*0.1f)*sin(coord.y*0.1f))
         }
-
-        gnuplot.define("data", plotData, 3, YSIZE)
-        gnuplot("splot \$data with pm3d")
-        gnuplot.undefine("data")
-        gnuplot.close()
+        Gnuplot()
+            .define("data", plotData, 3, YSIZE)
+            .invoke("splot \$data with pm3d")
+            .undefine("data")
+            .close()
     }
 }
